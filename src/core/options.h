@@ -90,4 +90,101 @@ extern int nni_setopt(
 extern int nni_chkopt(
     const nni_chkoption *, const char *, const void *, size_t, nni_type);
 
+//
+// This next block sets up to define the various typed option functions.
+// To make it easier to cover them all at once, we use macros.
+//
+
+#define NNI_DEFGET(base, pointer)                                        \
+	int nng_##base##_get(                                                \
+	    nng_##base pointer s, const char *nm, void *vp, size_t *szp)     \
+	{                                                                    \
+		return (nni_##base##_getx(s, nm, vp, szp, NNI_TYPE_OPAQUE)); \
+	}
+
+#define NNI_DEFTYPEDGET(base, suffix, pointer, type, nnitype)    \
+	int nng_##base##_get_##suffix(                               \
+	    nng_##base pointer s, const char *nm, type *vp)          \
+	{                                                            \
+		size_t sz = sizeof(*vp);                             \
+		return (nni_##base##_getx(s, nm, vp, &sz, nnitype)); \
+	}
+
+#define NNI_DEFGETALL(base)                                      \
+	NNI_DEFGET(base, )                                           \
+	NNI_DEFTYPEDGET(base, int, , int, NNI_TYPE_INT32)            \
+	NNI_DEFTYPEDGET(base, bool, , bool, NNI_TYPE_BOOL)           \
+	NNI_DEFTYPEDGET(base, size, , size_t, NNI_TYPE_SIZE)         \
+	NNI_DEFTYPEDGET(base, uint64, , uint64_t, NNI_TYPE_UINT64)   \
+	NNI_DEFTYPEDGET(base, string, , char *, NNI_TYPE_STRING)     \
+	NNI_DEFTYPEDGET(base, ptr, , void *, NNI_TYPE_POINTER)       \
+	NNI_DEFTYPEDGET(base, ms, , nng_duration, NNI_TYPE_DURATION) \
+	NNI_DEFTYPEDGET(base, addr, , nng_sockaddr, NNI_TYPE_SOCKADDR)
+
+#define NNI_DEFGETALL_PTR(base)                                        \
+	NNI_DEFGET(base, *)                                           \
+	NNI_DEFTYPEDGET(base, int, *, int, NNI_TYPE_INT32)            \
+	NNI_DEFTYPEDGET(base, bool, *, bool, NNI_TYPE_BOOL)           \
+	NNI_DEFTYPEDGET(base, size, *, size_t, NNI_TYPE_SIZE)         \
+	NNI_DEFTYPEDGET(base, uint64, *, uint64_t, NNI_TYPE_UINT64)   \
+	NNI_DEFTYPEDGET(base, string, *, char *, NNI_TYPE_STRING)     \
+	NNI_DEFTYPEDGET(base, ptr, *, void *, NNI_TYPE_POINTER)       \
+	NNI_DEFTYPEDGET(base, ms, *, nng_duration, NNI_TYPE_DURATION) \
+	NNI_DEFTYPEDGET(base, addr, *, nng_sockaddr, NNI_TYPE_SOCKADDR)
+
+#define NNI_DEFSET(base, pointer)                                              \
+	int nng_##base##_set(                                                      \
+	    nng_##base pointer s, const char *nm, const void *vp, size_t sz)       \
+	{                                                                   \
+		return (nni_##base##_setx(s, nm, vp, sz, NNI_TYPE_OPAQUE)); \
+	}
+
+#define NNI_DEFTYPEDSETEX(base, suffix, pointer, type, len, nnitype)            \
+	int nng_##base##_set_##suffix(nng_##base pointer s, const char *nm, type v) \
+	{                                                                    \
+		return (nni_##base##_setx(s, nm, &v, len, nnitype));         \
+	}
+
+#define NNI_DEFTYPEDSET(base, suffix, pointer, type, nnitype)                   \
+	int nng_##base##_set_##suffix(nng_##base pointer s, const char *nm, type v) \
+	{                                                                    \
+		return (nni_##base##_setx(s, nm, &v, sizeof(v), nnitype));   \
+	}
+
+#define NNI_DEFSTRINGSET(base, pointer)                           \
+	int nng_##base##_set_string(                                  \
+	    nng_##base pointer s, const char *nm, const char *v)      \
+	{                                                             \
+		return (nni_##base##_setx(s, nm, v,                   \
+		    v != NULL ? strlen(v) + 1 : 0, NNI_TYPE_STRING)); \
+	}
+
+#define NNI_DEFSOCKADDRSET(base, pointer)                            \
+	int nng_##base##_set_adddr(                                      \
+	    nng_##base pointer s, const char *nm, const nng_sockaddr *v) \
+	{                                                                \
+		return (nni_##base##_setx(                        \
+		    s, nm, v, sizeof(*v), NNI_TYPE_SOCKADDR));    \
+	}
+
+#define NNI_DEFSETALL(base)                                      \
+	NNI_DEFSET(base, )                                           \
+	NNI_DEFTYPEDSET(base, int, , int, NNI_TYPE_INT32)            \
+	NNI_DEFTYPEDSET(base, bool, , bool, NNI_TYPE_BOOL)           \
+	NNI_DEFTYPEDSET(base, size, , size_t, NNI_TYPE_SIZE)         \
+	NNI_DEFTYPEDSET(base, ms, , nng_duration, NNI_TYPE_DURATION) \
+	NNI_DEFTYPEDSET(base, ptr, , void *, NNI_TYPE_POINTER)       \
+	NNI_DEFSTRINGSET(base, )                                     \
+	NNI_DEFSOCKADDRSET(base, )
+
+#define NNI_DEFSETALL_PTR(base)                                   \
+	NNI_DEFSET(base, *)                                           \
+	NNI_DEFTYPEDSET(base, int, *, int, NNI_TYPE_INT32)            \
+	NNI_DEFTYPEDSET(base, bool, *, bool, NNI_TYPE_BOOL)           \
+	NNI_DEFTYPEDSET(base, size, *, size_t, NNI_TYPE_SIZE)         \
+	NNI_DEFTYPEDSET(base, ms, *, nng_duration, NNI_TYPE_DURATION) \
+	NNI_DEFTYPEDSET(base, ptr, *, void *, NNI_TYPE_POINTER)       \
+	NNI_DEFSTRINGSET(base, *)                                     \
+	NNI_DEFSOCKADDRSET(base, *)
+
 #endif // CORE_OPTIONS_H
